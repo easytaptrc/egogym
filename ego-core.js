@@ -179,8 +179,12 @@ const MockDB = {
 
 /* ---------- FIREBASE ---------- */
 const FirebaseDB = {
-  async getConfig(){ const ref=fdb.collection('settings').doc('config'); const s=await ref.get();
-    if(!s.exists){ await ref.set(DEFAULT_CONFIG); return JSON.parse(JSON.stringify(DEFAULT_CONFIG)); } return s.data(); },
+  async getConfig(){
+    /* Solo LEE. No escribe (así funciona al abrir sin iniciar sesión, con las reglas seguras).
+       El documento se crea cuando un admin inicia sesión o guarda ajustes. */
+    try{ const s=await fdb.collection('settings').doc('config').get(); if(s.exists) return s.data(); }
+    catch(e){ console.warn('No se pudo leer settings/config:',e); }
+    return JSON.parse(JSON.stringify(DEFAULT_CONFIG)); },
   async saveConfig(c){ await fdb.collection('settings').doc('config').set(c); return c; },
   async getSlot(a,dk,t){ const s=await fdb.collection('slots').doc(slotId(a,dk,t)).get(); return s.exists?s.data():null; },
   async reserve(r){
@@ -241,7 +245,10 @@ const FirebaseDB = {
     const uid=fauth.currentUser.uid; const sdoc=await fdb.collection('staff').doc(uid).get();
     if(!sdoc.exists){ await fauth.signOut(); throw new Error('Este usuario no tiene permisos asignados'); }
     const d=sdoc.data(); if(d.active===false){ await fauth.signOut(); throw new Error('Tu cuenta está desactivada'); }
-    CURRENT_USER={uid,username:d.username,name:d.name,role:d.role}; return CURRENT_USER; },
+    CURRENT_USER={uid,username:d.username,name:d.name,role:d.role};
+    /* Ya autenticado como admin: si aún no existe la configuración, la creamos ahora. */
+    if(d.role==='admin'){ try{ const cref=fdb.collection('settings').doc('config'); if(!(await cref.get()).exists){ await cref.set(CONFIG||DEFAULT_CONFIG); } }catch(e){ console.warn('No se pudo crear settings/config:',e); } }
+    return CURRENT_USER; },
   async logout(){ await fauth.signOut(); CURRENT_USER=null; }
 };
 
