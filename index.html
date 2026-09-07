@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0e0e">
+<title>EGO GYM · CLUB — Reservas</title>
+<meta name="description" content="Reserva tus clases de Spinning y Box en EGO GYM · CLUB.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<!-- Firebase (se ignora automáticamente en modo demo) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" onerror="window.__FB_LOAD_FAIL=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="ego-core.js"></script>
+</head>
+<body>
+
+<div id="modeBadge" class="hidden">Estás en <b>MODO DEMO</b> · datos de ejemplo, no se guardan en tu Firebase</div>
+
+<!-- ============================ HOME ============================ -->
+<div class="wrap" id="home">
+  <div class="home-header">
+    <div class="logo-row" id="homeLogo"></div>
+  </div>
+
+  <div class="hero">
+    <div class="grain"></div>
+    <div class="hero-inner">
+      <h1>Tu mejor<br><span class="y">versión</span><br>empieza aquí</h1>
+      <p>Reserva tu clase de Spinning o Box en segundos.</p>
+      <button class="cta" id="reservarBtn">RESERVAR AHORA
+        <span class="arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="socials" id="homeSocials"></div>
+  <div class="phone"><span class="p-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></span><span id="homePhone">871 234 5678</span></div>
+
+  <div class="info-row">
+    <div class="info-card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="t">Ubicación</div><div class="s" id="homeAddr">Ver mapa</div></div>
+    <div class="info-card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="t">Horarios</div><div class="s" id="homeHours">Lun–Vie</div></div>
+    <div class="info-card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></div><div class="t">Contacto</div><div class="s">WhatsApp</div></div>
+  </div>
+  <div style="height:26px"></div>
+</div>
+
+<!-- ============================ BOOKING ============================ -->
+<div class="overlay hidden" id="booking">
+  <div class="sheet-head">
+    <button class="back" id="bookBack"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><div class="h-title" id="bookTitle">Reserva tu clase</div><div class="h-sub" id="bookSub">Elige la actividad</div></div>
+  </div>
+  <div class="pad" id="bookBody"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= PÚBLICO — flujo de reservas ================= */
+function paintHome(){
+  $('#homeLogo').innerHTML = logoMark(46,false);
+  $('#homePhone').textContent = formatPhone(CONFIG.phone);
+  if(CONFIG.address) $('#homeAddr').textContent='Ver mapa';
+  $('#homeHours').textContent='Lun a Vie';
+  const s=CONFIG.social||{};
+  const ic={
+    instagram:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    facebook:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M13 22v-8h2.7l.4-3H13V9.2c0-.9.3-1.5 1.6-1.5H16V5.1c-.3 0-1.2-.1-2.2-.1-2.2 0-3.8 1.4-3.8 3.9V11H7.5v3H10v8z"/></svg>',
+    tiktok:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2 1.6 3.6 3.5 3.9v2.8c-1.3 0-2.5-.4-3.5-1v5.9A5.6 5.6 0 1 1 10.4 9v2.9a2.7 2.7 0 1 0 2.7 2.7V3z"/></svg>',
+    whatsapp:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2zm5.6 14c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .3-3.3-.7s-3.7-3.4-3.8-3.6c-.1-.2-.9-1.2-.9-2.3s.6-1.6.8-1.9c.2-.2.4-.3.6-.3h.4c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.4.5c-.1.2-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 1.9 1.2 2.2 1.3.2.1.4.1.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.8.9c.2.1.4.2.4.3.1.2.1.7-.1 1.3z"/></svg>'
+  };
+  const links=[['instagram',s.instagram],['facebook',s.facebook],['tiktok',s.tiktok],['whatsapp',waLink('¡Hola! Quiero información de EGO GYM.')]];
+  $('#homeSocials').innerHTML = links.map(([k,url])=>`<a href="${url&&url!=='#'?esc(url):'#'}" ${url&&url!=='#'?'target="_blank" rel="noopener"':''} aria-label="${k}">${ic[k]}</a>`).join('');
+}
+
+const BK={ step:'activity', activity:null, dateKey:todayKey(), time:null, bike:null };
+function openBooking(){ BK.step='activity'; BK.activity=null; BK.time=null; BK.bike=null; $('#booking').classList.remove('hidden'); renderBooking(); }
+function closeBooking(){ $('#booking').classList.add('hidden'); }
+function bookBack(){
+  if(BK.step==='activity'){ closeBooking(); return; }
+  if(BK.step==='schedule'){ BK.step='activity'; }
+  else if(BK.step==='bikemap'){ BK.step='schedule'; }
+  else if(BK.step==='form'){ BK.step = BK.activity==='spinning'?'bikemap':'schedule'; }
+  else if(BK.step==='success'){ closeBooking(); return; }
+  renderBooking();
+}
+function renderBooking(){
+  const body=$('#bookBody'); const title=$('#bookTitle'); const sub=$('#bookSub');
+  if(BK.step==='activity'){ title.textContent='Reserva tu clase'; sub.textContent='Elige la actividad'; body.innerHTML=viewActivities(); wireActivities(); }
+  else if(BK.step==='schedule'){ const a=CONFIG.activities[BK.activity]; title.textContent=a.label; sub.textContent='Selecciona día y horario'; body.innerHTML=viewSchedule(); wireSchedule(); }
+  else if(BK.step==='bikemap'){ title.textContent='Mapa de bicicletas'; sub.textContent=prettyDate(BK.dateKey)+' · '+timeLabel(BK.time); renderBikeMap(); }
+  else if(BK.step==='form'){ title.textContent='Tus datos'; sub.textContent='Último paso'; body.innerHTML=viewForm(); wireForm(); }
+  else if(BK.step==='success'){ title.textContent='¡Listo!'; sub.textContent='Reserva confirmada'; }
+}
+function viewActivities(){
+  return `
+  <button class="act-card spin" data-a="spinning"><div class="bg"></div><div class="c">
+    <h3>SPINNING</h3><p>${esc(CONFIG.activities.spinning.tagline)}</p></div>
+    <div class="go"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div></button>
+  <button class="act-card box" data-a="box"><div class="bg"></div><div class="c">
+    <h3>BOX</h3><p>${esc(CONFIG.activities.box.tagline)}</p></div>
+    <div class="go"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div></button>
+  <p class="hint" style="text-align:center;margin-top:8px">Spinning incluye selección de bicicleta 🚴</p>`;
+}
+function wireActivities(){ $$('.act-card').forEach(c=>c.onclick=()=>{ BK.activity=c.dataset.a; BK.dateKey=firstAvailableDate(c.dataset.a); BK.step='schedule'; renderBooking(); }); }
+
+function viewSchedule(){
+  const dates=upcomingDates(14).slice(0,10);
+  const chips=dates.map(dk=>{ const d=parseKey(dk); const has=dayHasOpen(BK.activity,dk);
+    return `<button class="daychip ${dk===BK.dateKey?'on':''} ${has?'':'off'}" data-dk="${dk}" ${has?'':'disabled'}>
+      <div class="d">${DIAS_ABBR[d.getDay()]}</div><div class="n">${d.getDate()}</div></button>`; }).join('');
+  return `<div class="daybar">${chips}</div><div id="slotList" style="margin-top:14px"></div>`;
+}
+async function wireSchedule(){
+  $$('#booking .daychip').forEach(c=>{ if(!c.disabled) c.onclick=()=>{ BK.dateKey=c.dataset.dk; renderBooking(); }; });
+  await renderSlotList();
+}
+async function renderSlotList(){
+  const box=$('#slotList'); const times=daySlots(BK.activity,BK.dateKey); const price=CONFIG.activities[BK.activity].price;
+  if(!times.length){ box.innerHTML=`<div class="empty">No hay clases este día.</div>`; return; }
+  box.innerHTML=`<div class="empty">Cargando disponibilidad…</div>`;
+  const rows=await Promise.all(times.map(async t=>{
+    const s=await DB.getSlot(BK.activity,BK.dateKey,t); const cap=s&&s.capacity!=null?s.capacity:defaultCap(BK.activity);
+    const count=s?s.count||0:0; const closed=s?!!s.closed:false; const past=slotPassed(BK.dateKey,t);
+    const left=Math.max(0,cap-count); const full=left<=0;
+    let meta,cls,disabled=false,btn;
+    if(closed){ meta='Cerrado por el gym'; cls='closed'; disabled=true; btn='Cerrado'; }
+    else if(past){ meta='Ya pasó'; cls='closed'; disabled=true; btn='—'; }
+    else if(full){ meta='Cupo lleno'; cls='full'; disabled=true; btn='Lleno'; }
+    else { meta=`${left} lugar${left===1?'':'es'} disponible${left===1?'':'s'}`; cls='ok'; btn='Reservar'; }
+    return `<div class="slot ${disabled?'disabled':''}">
+      <div><div class="time">${timeLabel(t)}</div><div class="meta ${cls}">${meta}</div></div>
+      <button class="pick" data-t="${t}" ${disabled?'disabled':''}>${btn}</button></div>`;
+  }));
+  box.innerHTML=`<div style="margin-bottom:10px;font-size:13px;color:var(--muted)">Precio por clase: <span class="badge-price">${money(price)}</span></div>`+rows.join('');
+  $$('#slotList .pick').forEach(b=>{ if(!b.disabled) b.onclick=()=>{ BK.time=b.dataset.t; BK.bike=null;
+    BK.step = BK.activity==='spinning'?'bikemap':'form'; renderBooking(); }; });
+}
+async function renderBikeMap(){
+  const body=$('#bookBody'); const a=CONFIG.activities.spinning; const cols=a.cols||3; const n=a.bikeCount||12;
+  body.innerHTML=`<div class="empty">Cargando mapa…</div>`;
+  const s=await DB.getSlot('spinning',BK.dateKey,BK.time); const taken=(s&&s.takenBikes)||[];
+  let bikes='';
+  for(let i=1;i<=n;i++){ const isT=taken.includes(i); const mine=BK.bike===i;
+    bikes+=`<button class="bike ${isT?'taken':(mine?'mine':'free')}" data-b="${i}" ${isT?'disabled':''}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M6 17.5 12 6h3M9 6h5l3 11.5M12 6l3.5 6H6"/></svg>
+      <span class="num">${i}</span></button>`; }
+  body.innerHTML=`
+    <div class="map-legend">
+      <span><i class="dot free"></i>Disponible</span><span><i class="dot taken"></i>Ocupada</span><span><i class="dot mine"></i>Tu lugar</span></div>
+    <div class="screen-bar">INSTRUCTOR</div>
+    <div class="bikes" style="grid-template-columns:repeat(${cols},60px)">${bikes}</div>
+    <div class="entrada">ENTRADA</div>
+    <div class="sticky-cta"><button class="btn" id="bikeNext" disabled>Continuar</button></div>`;
+  $$('#bookBody .bike.free').forEach(b=>b.onclick=()=>{ BK.bike=Number(b.dataset.b); renderBikeMap(); });
+  const nx=$('#bikeNext'); if(BK.bike){ nx.disabled=false; nx.textContent=`Continuar con bici #${BK.bike}`; nx.onclick=()=>{ BK.step='form'; renderBooking(); }; }
+}
+function viewForm(){
+  const a=CONFIG.activities[BK.activity];
+  return `
+  <div class="summary">
+    <div class="row"><span class="k">Actividad</span><span class="v">${esc(a.label)}</span></div>
+    <div class="row"><span class="k">Fecha</span><span class="v">${prettyDate(BK.dateKey)}</span></div>
+    <div class="row"><span class="k">Hora</span><span class="v">${timeLabel(BK.time)}</span></div>
+    ${BK.bike?`<div class="row"><span class="k">Bicicleta</span><span class="v">#${BK.bike}</span></div>`:''}
+    <div class="row"><span class="k">Precio</span><span class="v">${money(a.price)}</span></div>
+  </div>
+  <div class="field"><label>Nombre completo</label><input id="fName" placeholder="Tu nombre" autocomplete="name"></div>
+  <div class="field"><label>Teléfono (WhatsApp)</label><input id="fPhone" type="tel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel"></div>
+  <div class="sticky-cta"><button class="btn" id="confirmBtn">Confirmar reserva</button></div>`;
+}
+function wireForm(){
+  $('#confirmBtn').onclick=async ()=>{
+    const name=$('#fName').value.trim(); const phone=$('#fPhone').value.replace(/\D/g,'');
+    if(name.length<2) return toast('Escribe tu nombre',true);
+    if(phone.length<10) return toast('Teléfono de 10 dígitos',true);
+    const btn=$('#confirmBtn'); btn.disabled=true; btn.textContent='Reservando…';
+    const price=CONFIG.activities[BK.activity].price;
+    const res=await DB.reserve({activity:BK.activity,date:BK.dateKey,time:BK.time,name,phone,bike:BK.bike,price,source:'web'});
+    if(!res.ok){ btn.disabled=false; btn.textContent='Confirmar reserva';
+      if(res.reason==='full'||res.reason==='bike') return renderFull(res.reason);
+      if(res.reason==='closed') return toast('Ese horario fue cerrado por el gimnasio',true);
+      return toast('No se pudo reservar. Intenta de nuevo.',true); }
+    BK._last={name,phone,activity:BK.activity,date:BK.dateKey,time:BK.time,bike:BK.bike,price};
+    BK.step='success'; renderBooking(); renderSuccess();
+  };
+}
+function renderFull(reason){
+  const body=$('#bookBody');
+  body.innerHTML=`<div class="msg-card"><div class="em">${reason==='bike'?'🚴':'🙌'}</div>
+    <h3>${reason==='bike'?'Esa bici se acaba de ocupar':'¡Cupo lleno!'}</h3>
+    <p>${reason==='bike'?'Alguien tomó ese lugar hace un momento.':'Este horario ya alcanzó su cupo máximo.'}</p>
+    <p>Elige otro ${reason==='bike'?'lugar':'horario'}, ¡te esperamos! 💪</p></div>
+    <button class="btn" id="fullBack">Ver otros horarios</button>`;
+  $('#fullBack').onclick=()=>{ BK.step='schedule'; BK.bike=null; renderBooking(); };
+}
+function renderSuccess(){
+  const l=BK._last; const a=CONFIG.activities[l.activity];
+  const msg=`¡Hola ${CONFIG.gymName}! 👊 Confirmo mi reserva:%0A%0A`+
+    `🏷️ ${a.label}%0A📅 ${prettyDate(l.date)}%0A🕒 ${timeLabel(l.time)}%0A`+
+    (l.bike?`🚴 Bicicleta #${l.bike}%0A`:'')+`👤 ${l.name}%0A📞 ${l.phone}`;
+  const wa = waLink(decodeURIComponent(msg));
+  $('#bookBody').innerHTML=`
+    <div class="success"><div class="check"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h2>¡Reserva confirmada!</h2><p>Te esperamos, ${esc(l.name.split(' ')[0])} 💪</p></div>
+    <div class="summary">
+      <div class="row"><span class="k">Actividad</span><span class="v">${esc(a.label)}</span></div>
+      <div class="row"><span class="k">Fecha</span><span class="v">${prettyDate(l.date)}</span></div>
+      <div class="row"><span class="k">Hora</span><span class="v">${timeLabel(l.time)}</span></div>
+      ${l.bike?`<div class="row"><span class="k">Bicicleta</span><span class="v">#${l.bike}</span></div>`:''}
+    </div>
+    <a class="btn wa" href="${wa}" target="_blank" rel="noopener" style="text-decoration:none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2z"/></svg>
+      Confirmar por WhatsApp</a>
+    <button class="btn ghost" id="againBtn" style="margin-top:10px">Hacer otra reserva</button>`;
+  $('#againBtn').onclick=()=>{ openBooking(); };
+}
+
+/* arranque */
+(async ()=>{
+  try{
+    await initCore();
+    paintHome();
+    $('#reservarBtn').onclick=openBooking;
+    $('#bookBack').onclick=bookBack;
+  }catch(e){ console.error(e); document.body.innerHTML='<div class="pad">Error al iniciar: '+esc(e.message)+'</div>'; }
+})();
+</script>
+</body>
+</html>

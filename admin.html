@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141414">
+<title>EGO GYM · Panel</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" onerror="window.__FB_LOAD_FAIL=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="ego-core.js"></script>
+</head>
+<body>
+
+<div id="modeBadge" class="hidden">Estás en <b>MODO DEMO</b> · datos de ejemplo, no se guardan en tu Firebase</div>
+
+<!-- ============================ LOGIN ============================ -->
+<div class="wrap" id="adminLogin">
+  <div class="login-box">
+    <div class="login-logo" id="loginLogo"></div>
+    <div class="field"><label>Usuario</label><input id="loginUser" autocomplete="username" placeholder="tu usuario"></div>
+    <div class="field"><label>Contraseña</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn" id="loginBtn">Entrar</button>
+    <p class="hint" id="loginHint" style="text-align:center;margin-top:14px"></p>
+  </div>
+</div>
+
+<!-- ============================ ADMIN APP ============================ -->
+<div class="hidden" id="adminApp">
+  <div class="admin-top">
+    <div class="logo-row" id="adminLogo"></div>
+    <div style="text-align:right"><div class="who" id="adminWho"></div>
+      <button class="mini" id="logoutBtn" style="margin-top:4px">Salir</button></div>
+  </div>
+  <div class="admin-tabs" id="adminTabs"></div>
+  <div class="admin-body" id="adminBody"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ================= PANEL DE ADMINISTRACIÓN ================= */
+async function doLogin(){
+  const u=$('#loginUser').value, p=$('#loginPass').value; if(!u||!p) return toast('Escribe usuario y contraseña',true);
+  const btn=$('#loginBtn'); btn.disabled=true; btn.textContent='Entrando…';
+  try{ await DB.login(u,p); $('#adminLogin').classList.add('hidden'); openAdmin(); }
+  catch(e){ toast(e.message||'No se pudo entrar',true); }
+  finally{ btn.disabled=false; btn.textContent='Entrar'; }
+}
+const ADMIN_TABS=[
+  {id:'reservas',label:'Reservas',roles:['admin','staff']},
+  {id:'horarios',label:'Horarios',roles:['admin']},
+  {id:'personal',label:'Personal',roles:['admin']},
+  {id:'reportes',label:'Reportes',roles:['admin']},
+  {id:'ajustes',label:'Ajustes',roles:['admin']},
+];
+let ADMIN_TAB='reservas';
+function openAdmin(){
+  $('#adminApp').classList.remove('hidden');
+  $('#adminWho').innerHTML=`${esc(CURRENT_USER.name)} · <b>${CURRENT_USER.role==='admin'?'Admin':'Personal'}</b>`;
+  const tabs=ADMIN_TABS.filter(t=>t.roles.includes(CURRENT_USER.role));
+  ADMIN_TAB=tabs[0].id;
+  $('#adminTabs').innerHTML=tabs.map(t=>`<button data-t="${t.id}" class="${t.id===ADMIN_TAB?'on':''}">${t.label}</button>`).join('');
+  $$('#adminTabs button').forEach(b=>b.onclick=()=>{ ADMIN_TAB=b.dataset.t;
+    $$('#adminTabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===ADMIN_TAB)); renderAdminTab(); });
+  renderAdminTab();
+}
+async function doLogout(){ await DB.logout(); $('#adminApp').classList.add('hidden'); $('#adminLogin').classList.remove('hidden');
+  $('#loginUser').value=''; $('#loginPass').value=''; }
+function renderAdminTab(){
+  const b=$('#adminBody'); b.scrollTop=0;
+  if(ADMIN_TAB==='reservas') renderReservas(b);
+  else if(ADMIN_TAB==='horarios') renderHorarios(b);
+  else if(ADMIN_TAB==='personal') renderPersonal(b);
+  else if(ADMIN_TAB==='reportes') renderReportes(b);
+  else if(ADMIN_TAB==='ajustes') renderAjustes(b);
+}
+
+/* ---------- RESERVAS ---------- */
+let RES_FILTER={date:todayKey(),activity:'all'};
+function renderReservas(b){
+  b.innerHTML=`
+  <div class="panel">
+    <div class="toolbar">
+      <div class="field"><label>Fecha</label><input type="date" id="rDate" value="${RES_FILTER.date}"></div>
+      <div class="field"><label>Actividad</label><select id="rAct">
+        <option value="all">Todas</option><option value="spinning">Spinning</option><option value="box">Box</option></select></div>
+      <button class="mini k" id="rToday">Hoy</button>
+      <button class="mini" id="rNew">+ Nueva reserva</button>
+    </div>
+    <div id="resKpis" class="kpis"></div>
+    <div class="tbl-wrap"><table id="resTable"></table></div>
+  </div>`;
+  $('#rAct').value=RES_FILTER.activity;
+  $('#rDate').onchange=e=>{ RES_FILTER.date=e.target.value; loadReservas(); };
+  $('#rAct').onchange=e=>{ RES_FILTER.activity=e.target.value; loadReservas(); };
+  $('#rToday').onclick=()=>{ RES_FILTER.date=todayKey(); $('#rDate').value=RES_FILTER.date; loadReservas(); };
+  $('#rNew').onclick=()=>newReservationDialog();
+  loadReservas();
+}
+async function loadReservas(){
+  let list=await DB.listReservations({date:RES_FILTER.date});
+  if(RES_FILTER.activity!=='all') list=list.filter(r=>r.activity===RES_FILTER.activity);
+  const active=list.filter(r=>r.status!=='cancelado');
+  const asis=list.filter(r=>r.status==='asistio').length;
+  const ingreso=active.filter(r=>r.paid).reduce((s,r)=>s+(r.price||0),0);
+  $('#resKpis').innerHTML=`
+    <div class="kpi"><div class="l">Reservas</div><div class="v">${active.length}</div></div>
+    <div class="kpi"><div class="l">Asistencias</div><div class="v">${asis}</div></div>
+    <div class="kpi gold"><div class="l">Cobrado</div><div class="v">${money(ingreso)}</div></div>`;
+  const t=$('#resTable');
+  if(!list.length){ t.innerHTML=`<tr><td><div class="empty">Sin reservas para ${prettyDate(RES_FILTER.date)}.</div></td></tr>`; return; }
+  t.innerHTML=`<thead><tr><th>Hora</th><th>Actividad</th><th>Nombre</th><th>Tel</th><th>Bici</th><th>Estado</th><th>Pago</th><th>Acciones</th></tr></thead>
+    <tbody>${list.map(r=>rowRes(r)).join('')}</tbody>`;
+  $$('#resTable [data-act]').forEach(btn=>btn.onclick=async()=>{
+    const {id,act}=btn.dataset;
+    if(act==='asistio') await DB.updateReservation(id,{status:'asistio'});
+    if(act==='no_asistio') await DB.updateReservation(id,{status:'no_asistio'});
+    if(act==='cancelar'){ if(!confirm('¿Cancelar esta reserva? Se libera el lugar.'))return; await DB.updateReservation(id,{status:'cancelado'}); }
+    if(act==='pago'){ const r=(await DB.listReservations({date:RES_FILTER.date})).find(x=>x.id===id); await DB.updateReservation(id,{paid:!r.paid}); }
+    loadReservas();
+  });
+}
+function rowRes(r){
+  const a=CONFIG.activities[r.activity];
+  const cc=CONFIG.countryCode||'52';
+  const telHref='https://wa.me/'+cc+String(r.phone||'').replace(/\D/g,'')+'?text='+encodeURIComponent('Hola '+r.name+', te saludamos de '+CONFIG.gymName+'.');
+  return `<tr>
+    <td><b>${timeLabel(r.time)}</b></td>
+    <td><span class="tag ${r.activity==='spinning'?'spin':'box'}">${esc(a.label)}</span></td>
+    <td>${esc(r.name)}</td>
+    <td><a href="${telHref}" target="_blank" rel="noopener" style="color:#2f6fed">${esc(formatPhone(r.phone))}</a></td>
+    <td>${r.bike?'#'+r.bike:'—'}</td>
+    <td><span class="tag ${r.status}">${({reservado:'Reservado',asistio:'Asistió',no_asistio:'No asistió',cancelado:'Cancelado'})[r.status]}</span></td>
+    <td>${r.status==='cancelado'?'—':`<button class="mini ${r.paid?'g':''}" data-act="pago" data-id="${r.id}">${r.paid?'Pagado':'Cobrar'}</button>`}</td>
+    <td>${r.status==='cancelado'?'—':`
+      <button class="mini g" data-act="asistio" data-id="${r.id}" title="Asistió">✓</button>
+      <button class="mini" data-act="no_asistio" data-id="${r.id}" title="No asistió">✗</button>
+      <button class="mini r" data-act="cancelar" data-id="${r.id}" title="Cancelar">Cancelar</button>`}</td>
+  </tr>`;
+}
+function newReservationDialog(){
+  const dk=RES_FILTER.date;
+  const html=`<div class="panel" id="newResPanel" style="border:2px solid var(--gold)">
+    <h3>Nueva reserva (walk-in)</h3>
+    <div class="toolbar">
+      <div class="field"><label>Actividad</label><select id="nAct"><option value="spinning">Spinning</option><option value="box">Box</option></select></div>
+      <div class="field"><label>Fecha</label><input type="date" id="nDate" value="${dk}"></div>
+      <div class="field"><label>Hora</label><select id="nTime"></select></div>
+    </div>
+    <div class="field"><label>Nombre</label><input id="nName" placeholder="Nombre del cliente"></div>
+    <div class="field"><label>Teléfono</label><input id="nPhone" placeholder="10 dígitos"></div>
+    <div class="field" id="nBikeWrap"><label>Bicicleta (opcional)</label><input id="nBike" type="number" min="1" placeholder="#"></div>
+    <label class="switch"><input type="checkbox" id="nPaid"> Marcar como pagado</label>
+    <div style="margin-top:14px;display:flex;gap:10px"><button class="btn sm" id="nSave">Guardar</button>
+      <button class="btn sm ghost" id="nCancel">Cancelar</button></div></div>`;
+  const wrap=document.createElement('div'); wrap.innerHTML=html; $('#adminBody').prepend(wrap.firstChild);
+  const fillTimes=()=>{ const act=$('#nAct').value; const times=daySlots(act,$('#nDate').value);
+    $('#nTime').innerHTML=times.length?times.map(t=>`<option value="${t}">${timeLabel(t)}</option>`).join(''):`<option value="">(sin horarios)</option>`;
+    $('#nBikeWrap').style.display=act==='spinning'?'block':'none'; };
+  $('#nAct').onchange=fillTimes; $('#nDate').onchange=fillTimes; fillTimes();
+  $('#nCancel').onclick=()=>$('#newResPanel').remove();
+  $('#nSave').onclick=async()=>{
+    const act=$('#nAct').value,d=$('#nDate').value,t=$('#nTime').value,name=$('#nName').value.trim(),phone=$('#nPhone').value.replace(/\D/g,'');
+    if(!t) return toast('No hay horario',true); if(name.length<2) return toast('Nombre requerido',true);
+    const bike=act==='spinning'&&$('#nBike').value?Number($('#nBike').value):null;
+    const res=await DB.reserve({activity:act,date:d,time:t,name,phone,bike,price:CONFIG.activities[act].price,source:'admin'});
+    if(!res.ok) return toast(res.reason==='full'?'Cupo lleno':res.reason==='bike'?'Bici ocupada':'No se pudo',true);
+    if($('#nPaid').checked) await DB.updateReservation(res.id,{paid:true});
+    toast('Reserva creada'); $('#newResPanel').remove(); if(d===RES_FILTER.date) loadReservas();
+  };
+}
+
+/* ---------- HORARIOS ---------- */
+function renderHorarios(b){
+  b.innerHTML=`
+  <div class="panel"><h3>Precios y cupos por actividad</h3>
+    <div class="grid2">
+      <div><h4>Spinning</h4>
+        <div class="field"><label>Precio por clase</label><input type="number" id="hSpinPrice" value="${CONFIG.activities.spinning.price}"></div>
+        <div class="field"><label>Bicicletas (cupo)</label><input type="number" id="hBikes" value="${CONFIG.activities.spinning.bikeCount}"></div>
+        <div class="field"><label>Columnas del mapa</label><input type="number" id="hCols" value="${CONFIG.activities.spinning.cols}"></div>
+      </div>
+      <div><h4>Box</h4>
+        <div class="field"><label>Precio por clase</label><input type="number" id="hBoxPrice" value="${CONFIG.activities.box.price}"></div>
+        <div class="field"><label>Cupo por clase</label><input type="number" id="hBoxCap" value="${CONFIG.activities.box.capacity}"></div>
+      </div>
+    </div>
+    <button class="btn sm" id="hSavePrices">Guardar precios y cupos</button>
+  </div>
+
+  <div class="panel"><h3>Horarios semanales</h3>
+    <p class="hint">Agrega o quita horarios de cada día. Toca la ✕ para quitar.</p>
+    ${['spinning','box'].map(a=>scheduleEditor(a)).join('')}
+    <button class="btn sm" id="hSaveSched">Guardar horarios</button>
+  </div>
+
+  <div class="panel"><h3>Cerrar o limitar un día específico</h3>
+    <p class="hint">Por ejemplo: "hoy solo recibo 10 personas" o cerrar una clase puntual.</p>
+    <div class="toolbar">
+      <div class="field"><label>Actividad</label><select id="oAct"><option value="spinning">Spinning</option><option value="box">Box</option></select></div>
+      <div class="field"><label>Fecha</label><input type="date" id="oDate" value="${todayKey()}"></div>
+    </div>
+    <div id="oSlots"></div>
+  </div>`;
+  $('#hSavePrices').onclick=async()=>{
+    CONFIG.activities.spinning.price=Number($('#hSpinPrice').value)||0;
+    CONFIG.activities.spinning.bikeCount=Number($('#hBikes').value)||12;
+    CONFIG.activities.spinning.cols=Number($('#hCols').value)||3;
+    CONFIG.activities.box.price=Number($('#hBoxPrice').value)||0;
+    CONFIG.activities.box.capacity=Number($('#hBoxCap').value)||10;
+    await DB.saveConfig(CONFIG); toast('Guardado ✓');
+  };
+  wireScheduleEditors();
+  $('#hSaveSched').onclick=async()=>{ await DB.saveConfig(CONFIG); toast('Horarios guardados ✓'); };
+  const loadOv=()=>renderOverrideSlots($('#oAct').value,$('#oDate').value);
+  $('#oAct').onchange=loadOv; $('#oDate').onchange=loadOv; loadOv();
+}
+function scheduleEditor(a){
+  const sch=CONFIG.activities[a].schedule; const label=CONFIG.activities[a].label;
+  const days=['mon','tue','wed','thu','fri','sat','sun'];
+  const names={mon:'Lunes',tue:'Martes',wed:'Miércoles',thu:'Jueves',fri:'Viernes',sat:'Sábado',sun:'Domingo'};
+  return `<h4>${esc(label)}</h4><div data-sched="${a}">
+    ${days.map(d=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="width:88px;font-size:13px;font-weight:700">${names[d]}</div>
+      <div class="chip-day" data-day="${d}">
+        ${(sch[d]||[]).map(t=>`<span class="timechip">${timeLabel(t)}<button data-rm="${t}">×</button></span>`).join('')}
+      </div>
+      <button class="mini" data-add="${d}">+ hora</button>
+    </div>`).join('')}</div>`;
+}
+function wireScheduleEditors(){
+  $$('[data-sched]').forEach(cont=>{ const a=cont.dataset.sched;
+    cont.querySelectorAll('[data-add]').forEach(btn=>btn.onclick=()=>{ const d=btn.dataset.add;
+      const v=prompt('Hora en formato 24h (ej. 07:00, 19:30):','07:00'); if(!v)return;
+      if(!/^\d{1,2}:\d{2}$/.test(v)) return toast('Formato inválido',true);
+      const [h,m]=v.split(':').map(Number); const t=pad2(h)+':'+pad2(m);
+      CONFIG.activities[a].schedule[d]=Array.from(new Set([...(CONFIG.activities[a].schedule[d]||[]),t])).sort();
+      renderAdminTab(); });
+    cont.querySelectorAll('[data-rm]').forEach(btn=>btn.onclick=()=>{ const day=btn.closest('[data-day]').dataset.day; const t=btn.dataset.rm;
+      CONFIG.activities[a].schedule[day]=(CONFIG.activities[a].schedule[day]||[]).filter(x=>x!==t); renderAdminTab(); });
+  });
+}
+async function renderOverrideSlots(a,dk){
+  const box=$('#oSlots'); const times=daySlots(a,dk);
+  if(!times.length){ box.innerHTML=`<div class="empty">No hay clases de ${CONFIG.activities[a].label} ese día.</div>`; return; }
+  box.innerHTML='Cargando…';
+  const rows=await Promise.all(times.map(async t=>{ const s=await DB.getSlot(a,dk,t);
+    const cap=s&&s.capacity!=null?s.capacity:defaultCap(a); const count=s?s.count||0:0; const closed=s?!!s.closed:false;
+    return `<div class="slot"><div><div class="time">${timeLabel(t)}</div>
+      <div class="meta ${closed?'closed':'ok'}">${count} reservados · cupo ${cap}${closed?' · CERRADO':''}</div></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" class="mini" style="width:64px" value="${cap}" data-cap="${t}" title="Cupo">
+        <button class="mini ${closed?'g':'r'}" data-close="${t}" data-cur="${closed?1:0}">${closed?'Abrir':'Cerrar'}</button>
+      </div></div>`; }));
+  box.innerHTML=rows.join('');
+  box.querySelectorAll('[data-cap]').forEach(inp=>inp.onchange=async()=>{ await DB.setSlotOverride(a,dk,inp.dataset.cap,{capacity:Number(inp.value)||0}); toast('Cupo actualizado'); });
+  box.querySelectorAll('[data-close]').forEach(btn=>btn.onclick=async()=>{ await DB.setSlotOverride(a,dk,btn.dataset.close,{closed:btn.dataset.cur!=='1'}); renderOverrideSlots(a,dk); });
+}
+
+/* ---------- PERSONAL ---------- */
+async function renderPersonal(b){
+  b.innerHTML=`<div class="panel"><h3>Alta de personal</h3>
+    <p class="hint">El personal puede ver las reservas (hoy o por fecha). Los administradores pueden todo.</p>
+    <div class="grid2">
+      <div class="field"><label>Nombre</label><input id="sName" placeholder="Nombre"></div>
+      <div class="field"><label>Usuario</label><input id="sUser" placeholder="ej. recepcion"></div>
+      <div class="field"><label>Contraseña</label><input id="sPass" placeholder="mínimo 6 caracteres"></div>
+      <div class="field"><label>Rol</label><select id="sRole"><option value="staff">Personal</option><option value="admin">Administrador</option></select></div>
+    </div>
+    <button class="btn sm" id="sAdd">Crear usuario</button></div>
+    <div class="panel"><h3>Usuarios</h3><div class="tbl-wrap"><table id="staffTable"></table></div></div>`;
+  $('#sAdd').onclick=async()=>{
+    const name=$('#sName').value.trim(),user=$('#sUser').value.trim(),pass=$('#sPass').value,role=$('#sRole').value;
+    if(name.length<2) return toast('Nombre requerido',true);
+    if(!/^[a-z0-9_.-]{3,}$/i.test(user)) return toast('Usuario inválido (mín. 3, sin espacios)',true);
+    if(pass.length<6) return toast('Contraseña mínima 6 caracteres',true);
+    const btn=$('#sAdd'); btn.disabled=true; btn.textContent='Creando…';
+    try{ await DB.createStaff({name,username:user,password:pass,role}); toast('Usuario creado ✓'); renderPersonal(b); }
+    catch(e){ toast(e.message,true); btn.disabled=false; btn.textContent='Crear usuario'; }
+  };
+  loadStaff();
+}
+async function loadStaff(){
+  const list=await DB.listStaff(); const t=$('#staffTable');
+  t.innerHTML=`<thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    ${list.map(u=>`<tr>
+      <td>${esc(u.name)}</td><td>${esc(u.username)}</td>
+      <td><span class="tag ${u.role==='admin'?'asistio':'reservado'}">${u.role==='admin'?'Admin':'Personal'}</span></td>
+      <td>${u.active===false?'<span class="tag cancelado">Inactivo</span>':'<span class="tag asistio">Activo</span>'}</td>
+      <td>${u.uid===CURRENT_USER.uid?'<span class="hint">Tú</span>':`
+        <button class="mini" data-tog="${u.uid}" data-act="${u.active===false?1:0}">${u.active===false?'Activar':'Desactivar'}</button>
+        <button class="mini r" data-del="${u.uid}">Eliminar</button>`}</td></tr>`).join('')}
+  </tbody>`;
+  t.querySelectorAll('[data-tog]').forEach(btn=>btn.onclick=async()=>{ await DB.updateStaff(btn.dataset.tog,{active:btn.dataset.act==='1'}); loadStaff(); });
+  t.querySelectorAll('[data-del]').forEach(btn=>btn.onclick=async()=>{ if(!confirm('¿Eliminar este usuario del panel?'))return;
+    await DB.deleteStaff(btn.dataset.del); toast('Usuario eliminado'); loadStaff(); });
+}
+
+/* ---------- REPORTES ---------- */
+let REP_RANGE='7'; let charts=[];
+function renderReportes(b){
+  b.innerHTML=`<div class="panel"><h3>Reporte de flujo</h3>
+    <div class="toolbar">
+      <div class="field"><label>Periodo</label><select id="repRange">
+        <option value="0">Hoy</option><option value="7" selected>Últimos 7 días</option>
+        <option value="30">Últimos 30 días</option><option value="cust">Personalizado</option></select></div>
+      <div class="field" id="repFromWrap" style="display:none"><label>Desde</label><input type="date" id="repFrom"></div>
+      <div class="field" id="repToWrap" style="display:none"><label>Hasta</label><input type="date" id="repTo"></div>
+    </div>
+    <div id="repKpis" class="kpis"></div>
+  </div>
+  <div class="panel"><h3>Reservas por día</h3><div class="chart-box"><canvas id="chDays"></canvas></div></div>
+  <div class="grid2">
+    <div class="panel"><h3>Por actividad</h3><div class="chart-box"><canvas id="chAct"></canvas></div></div>
+    <div class="panel"><h3>Ingresos vs gastos</h3><div class="chart-box"><canvas id="chMoney"></canvas></div></div>
+  </div>
+  <div class="panel"><h3>Gastos</h3>
+    <div class="toolbar">
+      <div class="field"><label>Fecha</label><input type="date" id="eDate" value="${todayKey()}"></div>
+      <div class="field" style="flex:1"><label>Concepto</label><input id="eConcept" placeholder="ej. Renta, luz, sueldos"></div>
+      <div class="field"><label>Monto</label><input type="number" id="eAmount" placeholder="0"></div>
+      <button class="mini k" id="eAdd">+ Agregar gasto</button>
+    </div>
+    <div class="tbl-wrap"><table id="expTable"></table></div>
+  </div>`;
+  $('#repRange').onchange=e=>{ REP_RANGE=e.target.value; const c=REP_RANGE==='cust';
+    $('#repFromWrap').style.display=c?'block':'none'; $('#repToWrap').style.display=c?'block':'none';
+    if(!c) loadReport(); };
+  $('#repFrom').onchange=loadReport; $('#repTo').onchange=loadReport;
+  $('#eAdd').onclick=async()=>{ const date=$('#eDate').value,concept=$('#eConcept').value.trim(),amount=Number($('#eAmount').value)||0;
+    if(!concept||amount<=0) return toast('Concepto y monto requeridos',true);
+    await DB.addExpense({date,concept,amount}); $('#eConcept').value='';$('#eAmount').value=''; toast('Gasto agregado'); loadReport(); };
+  loadReport();
+}
+function repDates(){ if(REP_RANGE==='cust'){ const f=$('#repFrom').value||todayKey(),t=$('#repTo').value||todayKey(); return {from:f<t?f:t,to:f<t?t:f}; }
+  const n=Number(REP_RANGE); const to=new Date(); const from=new Date(); from.setDate(from.getDate()-n); return {from:dateKey(from),to:dateKey(to)}; }
+async function loadReport(){
+  const {from,to}=repDates();
+  const res=(await DB.listReservations({from,to})).filter(r=>r.status!=='cancelado');
+  const exp=await DB.listExpenses(from,to);
+  const ingresoCobrado=res.filter(r=>r.paid).reduce((s,r)=>s+(r.price||0),0);
+  const ingresoEstim=res.reduce((s,r)=>s+(r.price||0),0);
+  const gastos=exp.reduce((s,e)=>s+(e.amount||0),0);
+  const util=ingresoCobrado-gastos; const gano=util>=0;
+  const asis=res.filter(r=>r.status==='asistio').length;
+  $('#repKpis').innerHTML=`
+    <div class="kpi"><div class="l">Reservas</div><div class="v">${res.length}</div></div>
+    <div class="kpi"><div class="l">Asistencias</div><div class="v">${asis}</div></div>
+    <div class="kpi gold"><div class="l">Ingresos cobrados</div><div class="v">${money(ingresoCobrado)}</div></div>
+    <div class="kpi"><div class="l">Ingreso estimado</div><div class="v">${money(ingresoEstim)}</div></div>
+    <div class="kpi"><div class="l">Gastos</div><div class="v">${money(gastos)}</div></div>
+    <div class="kpi ${gano?'good':'bad'}"><div class="l">${gano?'Ganancia':'Pérdida'}</div><div class="v">${money(Math.abs(util))}</div></div>`;
+  const et=$('#expTable');
+  et.innerHTML=`<thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th></th></tr></thead><tbody>
+    ${exp.length?exp.map(e=>`<tr><td>${shortDate(e.date)}</td><td>${esc(e.concept)}</td><td>${money(e.amount)}</td>
+      <td><button class="mini r" data-delx="${e.id}">Quitar</button></td></tr>`).join(''):'<tr><td colspan="4"><div class="empty">Sin gastos en el periodo.</div></td></tr>'}</tbody>`;
+  et.querySelectorAll('[data-delx]').forEach(btn=>btn.onclick=async()=>{ await DB.deleteExpense(btn.dataset.delx); loadReport(); });
+  drawCharts(res,exp,from,to);
+}
+function drawCharts(res,exp,from,to){
+  if(typeof Chart==='undefined'){ ['chDays','chAct','chMoney'].forEach(id=>{const c=$('#'+id); if(c&&c.parentElement) c.parentElement.innerHTML='<div class="empty">Gráfica no disponible (sin conexión).</div>';}); return; }
+  charts.forEach(c=>c.destroy()); charts=[];
+  const gold='#F5B301', blue='#2f6fed', orange='#e07b1a', red='#e0392b', green='#16a34a';
+  const days=[]; const d0=parseKey(from),d1=parseKey(to);
+  for(let d=new Date(d0); d<=d1; d.setDate(d.getDate()+1)) days.push(dateKey(new Date(d)));
+  const cntByDay=days.map(dk=>res.filter(r=>r.date===dk).length);
+  charts.push(new Chart($('#chDays'),{type:'bar',data:{labels:days.map(shortDate),
+    datasets:[{label:'Reservas',data:cntByDay,backgroundColor:gold,borderRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}},maintainAspectRatio:false}}));
+  const spin=res.filter(r=>r.activity==='spinning').length, box=res.filter(r=>r.activity==='box').length;
+  charts.push(new Chart($('#chAct'),{type:'doughnut',data:{labels:['Spinning','Box'],
+    datasets:[{data:[spin,box],backgroundColor:[blue,orange],borderWidth:0}]},
+    options:{plugins:{legend:{position:'bottom'}},maintainAspectRatio:false}}));
+  const ingreso=res.filter(r=>r.paid).reduce((s,r)=>s+(r.price||0),0);
+  const gastos=exp.reduce((s,e)=>s+(e.amount||0),0);
+  charts.push(new Chart($('#chMoney'),{type:'bar',data:{labels:['Ingresos','Gastos','Utilidad'],
+    datasets:[{data:[ingreso,gastos,ingreso-gastos],backgroundColor:[green,red,(ingreso-gastos)>=0?gold:red],borderRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}},maintainAspectRatio:false}}));
+}
+
+/* ---------- AJUSTES ---------- */
+function renderAjustes(b){
+  const s=CONFIG.social||{};
+  b.innerHTML=`<div class="panel"><h3>Datos del gimnasio</h3>
+    <div class="grid2">
+      <div class="field"><label>Nombre</label><input id="cName" value="${esc(CONFIG.gymName)}"></div>
+      <div class="field"><label>Teléfono</label><input id="cPhone" value="${esc(CONFIG.phone)}"></div>
+      <div class="field"><label>WhatsApp (número)</label><input id="cWa" value="${esc(CONFIG.whatsapp)}"></div>
+      <div class="field"><label>Lada país</label><input id="cCc" value="${esc(CONFIG.countryCode||'52')}"></div>
+      <div class="field" style="grid-column:1/-1"><label>Dirección / liga de mapa</label><input id="cAddr" value="${esc(CONFIG.address||'')}"></div>
+    </div>
+    <h4>Redes sociales (ligas completas)</h4>
+    <div class="grid2">
+      <div class="field"><label>Instagram</label><input id="cIg" value="${esc(s.instagram||'')}" placeholder="https://instagram.com/..."></div>
+      <div class="field"><label>Facebook</label><input id="cFb" value="${esc(s.facebook||'')}" placeholder="https://facebook.com/..."></div>
+      <div class="field"><label>TikTok</label><input id="cTk" value="${esc(s.tiktok||'')}" placeholder="https://tiktok.com/@..."></div>
+    </div>
+    <button class="btn sm" id="cSave">Guardar ajustes</button>
+    ${MODE==='demo'?'<p class="hint" style="margin-top:10px">⚠️ En modo demo los cambios se guardan solo en este navegador.</p>':''}
+  </div>`;
+  $('#cSave').onclick=async()=>{
+    CONFIG.gymName=$('#cName').value.trim()||CONFIG.gymName;
+    CONFIG.phone=$('#cPhone').value.trim(); CONFIG.whatsapp=$('#cWa').value.trim();
+    CONFIG.countryCode=$('#cCc').value.trim()||'52'; CONFIG.address=$('#cAddr').value.trim();
+    CONFIG.social={instagram:$('#cIg').value.trim(),facebook:$('#cFb').value.trim(),tiktok:$('#cTk').value.trim(),whatsapp:$('#cWa').value.trim()};
+    await DB.saveConfig(CONFIG); toast('Ajustes guardados ✓');
+  };
+}
+
+/* arranque */
+(async ()=>{
+  try{
+    await initCore();
+    $('#loginLogo').innerHTML = logoMark(72,false)+`<div style="margin-top:10px;font-weight:900;letter-spacing:2px">EGO GYM · CLUB</div>`;
+    $('#adminLogo').innerHTML = `<span class="logo-pill">${logoMark(28,false)}</span>`;
+    $('#loginHint').textContent = MODE==='demo'?'Demo: usuario edson · contraseña egogym2026@':'';
+    $('#loginBtn').onclick=doLogin;
+    $('#loginPass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+    $('#logoutBtn').onclick=doLogout;
+    setTimeout(()=>$('#loginUser').focus(),150);
+  }catch(e){ console.error(e); document.body.innerHTML='<div class="pad">Error al iniciar: '+esc(e.message)+'</div>'; }
+})();
+</script>
+</body>
+</html>

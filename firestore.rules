@@ -1,0 +1,56 @@
+rules_version = '2';
+
+// ============================================================
+//  Reglas de seguridad de Firestore — EGO GYM · CLUB
+//  Cópialas en:  Firebase Console → Firestore Database → Reglas
+//  y presiona "Publicar".
+// ============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn()  { return request.auth != null; }
+    function isStaff()   { return signedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.uid)); }
+    function isAdmin()   { return isStaff() && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == 'admin'; }
+
+    // Configuración (horarios, precios, redes). Lectura pública (el index la necesita).
+    match /settings/{doc} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // Disponibilidad por horario (cupos y bicicletas ocupadas). SIN datos personales.
+    // El público la lee y la actualiza al reservar (dentro de una transacción validada por la app).
+    match /slots/{slot} {
+      allow read:          if true;
+      allow create, update:if true;
+      allow delete:        if isAdmin();
+    }
+
+    // Reservaciones. Cualquiera puede crear (reservar desde el index),
+    // pero SOLO el personal puede ver / editar (contienen nombre y teléfono).
+    match /reservations/{id} {
+      allow create:              if true;
+      allow read, update, delete:if isStaff();
+    }
+
+    // Personal / administradores.
+    match /staff/{uid} {
+      allow read:          if signedIn();
+      allow create:        if isAdmin() || (signedIn() && request.auth.uid == uid); // permite crear al primer admin
+      allow update, delete:if isAdmin();
+    }
+
+    // Gastos (para el reporte de flujo). Solo administradores.
+    match /expenses/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
+
+// ------------------------------------------------------------
+// NOTA DE SEGURIDAD (léela):
+// Estas reglas son adecuadas para un gimnasio pequeño. Para máxima
+// protección (evitar que alguien manipule cupos manualmente) se
+// recomienda mover la lógica de reserva a Cloud Functions. Puedo
+// ayudarte con eso si algún día lo necesitas.
+// ------------------------------------------------------------
