@@ -55,6 +55,7 @@ async function doLogin(){
 }
 const ADMIN_TABS=[
   {id:'reservas',label:'Reservas',roles:['admin','staff']},
+  {id:'miembros',label:'Miembros',roles:['admin','staff']},
   {id:'horarios',label:'Horarios',roles:['admin']},
   {id:'personal',label:'Personal',roles:['admin']},
   {id:'reportes',label:'Reportes',roles:['admin']},
@@ -76,6 +77,7 @@ async function doLogout(){ await DB.logout(); $('#adminApp').classList.add('hidd
 function renderAdminTab(){
   const b=$('#adminBody'); b.scrollTop=0;
   if(ADMIN_TAB==='reservas') renderReservas(b);
+  else if(ADMIN_TAB==='miembros') renderMiembros(b);
   else if(ADMIN_TAB==='horarios') renderHorarios(b);
   else if(ADMIN_TAB==='personal') renderPersonal(b);
   else if(ADMIN_TAB==='reportes') renderReportes(b);
@@ -175,6 +177,126 @@ function newReservationDialog(){
     if($('#nPaid').checked) await DB.updateReservation(res.id,{paid:true});
     toast('Reserva creada'); $('#newResPanel').remove(); if(d===RES_FILTER.date) loadReservas();
   };
+}
+
+/* ---------- MIEMBROS ---------- */
+let MEM_SEARCH='';
+function renderMiembros(b){
+  b.innerHTML=`
+  <div class="panel"><h3>Registrar miembro</h3>
+    <div class="grid2">
+      <div class="field"><label>Nombre</label><input id="mName" placeholder="Nombre del miembro"></div>
+      <div class="field"><label>Teléfono</label><input id="mPhone" placeholder="10 dígitos"></div>
+    </div>
+    <h4>Plan (calcula el vencimiento) o pon la fecha a mano</h4>
+    <div class="plan-row" id="planRow">
+      <button class="plan-btn" data-plan="mensual" data-days="30">Mensual +30</button>
+      <button class="plan-btn" data-plan="quincenal" data-days="15">Quincenal +15</button>
+      <button class="plan-btn" data-plan="semanal" data-days="7">Semanal +7</button>
+      <button class="plan-btn" data-plan="visita" data-days="1">Visita +1</button>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Inicio</label><input type="date" id="mStart" value="${todayKey()}"></div>
+      <div class="field"><label>Vence</label><input type="date" id="mExpires"></div>
+    </div>
+    <button class="btn sm" id="mSave">Registrar y generar ID</button>
+    <div id="mResult"></div>
+  </div>
+  <div class="panel"><h3>Miembros</h3>
+    <div class="toolbar"><div class="field" style="flex:1"><label>Buscar</label><input id="mSearch" placeholder="Nombre, ID o teléfono" value="${esc(MEM_SEARCH)}"></div></div>
+    <div class="tbl-wrap"><table id="memTable"></table></div>
+  </div>`;
+  let selPlan=null;
+  const recompute=()=>{ if(selPlan){ const days=Number(selPlan.days); $('#mExpires').value=addDays($('#mStart').value||todayKey(),days); } };
+  $$('#planRow .plan-btn').forEach(btn=>btn.onclick=()=>{ selPlan={plan:btn.dataset.plan,days:btn.dataset.days};
+    $$('#planRow .plan-btn').forEach(x=>x.classList.toggle('on',x===btn)); recompute(); });
+  $('#mStart').onchange=recompute;
+  $('#mExpires').onchange=()=>{ /* fecha manual: quita selección de plan */ selPlan=null; $$('#planRow .plan-btn').forEach(x=>x.classList.remove('on')); };
+  $('#mSave').onclick=async()=>{
+    const name=$('#mName').value.trim(), phone=$('#mPhone').value.replace(/\D/g,''), start=$('#mStart').value||todayKey(), expires=$('#mExpires').value;
+    if(name.length<2) return toast('Escribe el nombre',true);
+    if(phone.length<10) return toast('Teléfono de 10 dígitos',true);
+    if(!expires) return toast('Elige un plan o una fecha de vencimiento',true);
+    const btn=$('#mSave'); btn.disabled=true; btn.textContent='Generando…';
+    try{ const m=await DB.createMember({name,phone,plan:selPlan?selPlan.plan:null,start,expires}); showMemberResult(m); toast('Miembro registrado ✓'); loadMembers(); }
+    catch(e){ toast(e.message||'No se pudo registrar',true); }
+    finally{ btn.disabled=false; btn.textContent='Registrar y generar ID'; }
+  };
+  $('#mSearch').oninput=e=>{ MEM_SEARCH=e.target.value; loadMembers(); };
+  loadMembers();
+}
+function showMemberResult(m){
+  const cc=CONFIG.countryCode||'52';
+  const msg=`¡Bienvenido a ${CONFIG.gymName}! 💪%0A%0ATu ID de miembro es: ${m.code}%0AEntra a nuestra página con tu ID y tu teléfono para reservar tus clases.%0AVigencia: ${prettyDate(m.expires)}`;
+  const wa=`https://wa.me/${cc}${String(m.phone).replace(/\D/g,'')}?text=${encodeURIComponent(decodeURIComponent(msg))}`;
+  $('#mResult').innerHTML=`
+    <div style="border:2px solid var(--gold);border-radius:14px;padding:14px;margin-top:14px">
+      <p class="hint" style="margin:0 0 4px">ID de <b>${esc(m.name)}</b> — compártelo con el miembro (lo usará para entrar y reservar):</p>
+      <div class="idcode">${esc(m.code)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="mini k" id="mCopy">Copiar ID</button>
+        <a class="mini g" style="text-decoration:none" id="mSend" href="${wa}" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <button class="mini" id="mAnother">Registrar otro</button>
+      </div>
+    </div>`;
+  $('#mCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(m.code); toast('ID copiado'); }catch(e){ toast(m.code,false); } };
+  $('#mAnother').onclick=()=>{ ['mName','mPhone','mExpires'].forEach(id=>$('#'+id).value=''); $('#mStart').value=todayKey();
+    $$('#planRow .plan-btn').forEach(x=>x.classList.remove('on')); $('#mResult').innerHTML=''; $('#mName').focus(); };
+}
+function memberTag(m){ const st=membershipStatus(m);
+  if(st.state==='green') return '<span class="tag activa">Activa</span>';
+  if(st.state==='yellow') return `<span class="tag porvencer">Por vencer (${st.daysLeft}d)</span>`;
+  return `<span class="tag vencida">${st.reason==='inactive'?'Inactiva':'Vencida'}</span>`; }
+async function loadMembers(){
+  let list=await DB.listMembers(); const q=MEM_SEARCH.trim().toLowerCase();
+  if(q) list=list.filter(m=>(m.name+' '+m.code+' '+m.phone).toLowerCase().includes(q));
+  const t=$('#memTable');
+  if(!list.length){ t.innerHTML=`<tr><td><div class="empty">${MEM_SEARCH?'Sin resultados.':'Aún no hay miembros. Registra el primero arriba.'}</div></td></tr>`; return; }
+  t.innerHTML=`<thead><tr><th>Nombre</th><th>ID</th><th>Tel</th><th>Plan</th><th>Vence</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+    ${list.map(m=>{ const cc=CONFIG.countryCode||'52';
+      const tel='https://wa.me/'+cc+String(m.phone).replace(/\D/g,'');
+      return `<tr>
+        <td>${esc(m.name)}</td>
+        <td style="letter-spacing:2px;font-weight:700">${esc(m.code)}</td>
+        <td><a href="${tel}" target="_blank" rel="noopener" style="color:#2f6fed">${esc(formatPhone(m.phone))}</a></td>
+        <td>${esc(planLabel(m.plan))}</td>
+        <td>${m.expires?shortDate(m.expires):'—'}</td>
+        <td>${memberTag(m)}</td>
+        <td>
+          <button class="mini k" data-ren="${m.code}">Renovar</button>
+          <button class="mini" data-tog="${m.code}" data-act="${m.active===false?1:0}">${m.active===false?'Activar':'Desactivar'}</button>
+          <button class="mini r" data-del="${m.code}">Eliminar</button>
+        </td></tr>`; }).join('')}
+  </tbody>`;
+  t.querySelectorAll('[data-ren]').forEach(btn=>btn.onclick=()=>renewMemberDialog(list.find(x=>x.code===btn.dataset.ren)));
+  t.querySelectorAll('[data-tog]').forEach(btn=>btn.onclick=async()=>{ await DB.updateMember(btn.dataset.tog,{active:btn.dataset.act==='1'}); toast('Actualizado'); loadMembers(); });
+  t.querySelectorAll('[data-del]').forEach(btn=>btn.onclick=async()=>{ if(!confirm('¿Eliminar este miembro?'))return; await DB.deleteMember(btn.dataset.del); toast('Miembro eliminado'); loadMembers(); });
+}
+function renewMemberDialog(m){
+  if($('#renPanel')) $('#renPanel').remove();
+  const base = (m.expires && m.expires>=todayKey()) ? m.expires : todayKey();
+  const html=`<div class="panel" id="renPanel" style="border:2px solid var(--gold)">
+    <h3>Renovar / editar a ${esc(m.name)}</h3>
+    <p class="hint">Vence actual: <b>${m.expires?prettyDate(m.expires):'—'}</b>. Los planes suman desde <b>${prettyDate(base)}</b>.</p>
+    <div class="plan-row" id="renPlans">
+      <button class="plan-btn" data-plan="mensual" data-days="30">Mensual +30</button>
+      <button class="plan-btn" data-plan="quincenal" data-days="15">Quincenal +15</button>
+      <button class="plan-btn" data-plan="semanal" data-days="7">Semanal +7</button>
+      <button class="plan-btn" data-plan="visita" data-days="1">Visita +1</button>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>O fecha manual</label><input type="date" id="renDate" value="${m.expires||todayKey()}"></div>
+    </div>
+    <div style="display:flex;gap:10px"><button class="btn sm" id="renSave">Guardar</button>
+      <button class="btn sm ghost" id="renCancel">Cancelar</button></div></div>`;
+  const wrap=document.createElement('div'); wrap.innerHTML=html; $('#adminBody').prepend(wrap.firstChild);
+  let plan=null;
+  $$('#renPlans .plan-btn').forEach(btn=>btn.onclick=()=>{ plan={plan:btn.dataset.plan,days:Number(btn.dataset.days)};
+    $$('#renPlans .plan-btn').forEach(x=>x.classList.toggle('on',x===btn)); $('#renDate').value=addDays(base,plan.days); });
+  $('#renCancel').onclick=()=>$('#renPanel').remove();
+  $('#renSave').onclick=async()=>{ const expires=$('#renDate').value; if(!expires) return toast('Elige fecha o plan',true);
+    await DB.updateMember(m.code,{expires,active:true,plan:plan?plan.plan:m.plan}); toast('Membresía actualizada ✓'); $('#renPanel').remove(); loadMembers(); };
+  $('#adminBody').scrollTop=0;
 }
 
 /* ---------- HORARIOS ---------- */

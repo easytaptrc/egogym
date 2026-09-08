@@ -57,7 +57,8 @@ body.has-badge .overlay,body.has-badge #adminApp{top:44px}
 .phone .p-ic{color:var(--gold)}
 
 .info-row{display:flex;gap:10px;padding:6px 16px 26px}
-.info-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center}
+.info-card{flex:1;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;text-decoration:none;color:inherit;display:block}
+a.info-card:active{transform:scale(.97)}
 .info-card .ic{color:var(--gold);margin-bottom:6px}
 .info-card .t{font-size:12px;font-weight:700}
 .info-card .s{font-size:10.5px;color:var(--muted);margin-top:2px}
@@ -231,3 +232,21 @@ th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4p
 .logo-fb{align-items:center;gap:8px}
 .logo-img{width:auto;display:block}
 
+
+/* ---------- membresía ---------- */
+.member-chip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:7px 13px 7px 11px;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}
+.member-chip .light{width:11px;height:11px;border-radius:50%}
+.light.green{background:var(--green);box-shadow:0 0 0 4px rgba(22,163,74,.18)}
+.light.yellow{background:#eab308;box-shadow:0 0 0 4px rgba(234,179,8,.22)}
+.light.red{background:var(--red);box-shadow:0 0 0 4px rgba(224,57,43,.18)}
+.mstat{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.mstat .light{width:18px;height:18px;border-radius:50%;flex:0 0 auto}
+.mstat .txt .a{font-weight:800;font-size:15px}
+.mstat .txt .b{font-size:12.5px;color:var(--muted);margin-top:2px}
+.plan-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.plan-btn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;font-size:13px}
+.plan-btn.on{background:var(--gold);border-color:var(--gold);color:#141414}
+.idcode{font-family:'Montserrat',sans-serif;font-weight:900;letter-spacing:5px;font-size:30px;text-align:center;background:var(--gold-soft);border:2px dashed #e3c563;border-radius:14px;padding:16px 10px;color:#5a4300;margin:8px 0}
+.tag.activa{background:var(--green-bg);color:var(--green)}
+.tag.porvencer{background:#fef3c7;color:#92670a}
+.tag.vencida{background:var(--red-bg);color:var(--red)}

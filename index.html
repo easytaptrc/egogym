@@ -24,6 +24,7 @@
 <div class="wrap" id="home">
   <div class="home-header">
     <div class="logo-row" id="homeLogo"></div>
+    <div id="memberChip"></div>
   </div>
 
   <div class="hero">
@@ -38,14 +39,40 @@
   </div>
 
   <div class="socials" id="homeSocials"></div>
-  <div class="phone"><span class="p-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></span><span id="homePhone">871 234 5678</span></div>
+  <a class="phone" id="phoneLink" href="#" style="text-decoration:none;color:inherit"><span class="p-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></span><span id="homePhone">871 234 5678</span></a>
 
   <div class="info-row">
-    <div class="info-card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="t">Ubicación</div><div class="s" id="homeAddr">Ver mapa</div></div>
+    <a class="info-card" id="cardUbic" target="_blank" rel="noopener"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div class="t">Ubicación</div><div class="s">Ver mapa</div></a>
     <div class="info-card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="t">Horarios</div><div class="s" id="homeHours">Lun–Vie</div></div>
-    <div class="info-card"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></div><div class="t">Contacto</div><div class="s">WhatsApp</div></div>
+    <a class="info-card" id="cardWa" target="_blank" rel="noopener"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9z"/></svg></div><div class="t">Contacto</div><div class="s">WhatsApp</div></a>
   </div>
   <div style="height:26px"></div>
+</div>
+
+<!-- ============================ ACCESO MIEMBRO ============================ -->
+<div class="overlay hidden" id="memberAuth">
+  <div class="sheet-head">
+    <button class="back" id="maBack"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><div class="h-title">Acceso de miembros</div><div class="h-sub">Reservar es solo para miembros</div></div>
+  </div>
+  <div class="pad">
+    <div style="text-align:center;margin:14px 0 20px" id="maLogo"></div>
+    <div class="field"><label>Tu ID de miembro</label><input id="maId" autocapitalize="characters" placeholder="EJ: K7M2Q9" style="text-transform:uppercase;letter-spacing:3px;font-weight:700"></div>
+    <div class="field"><label>Tu teléfono</label><input id="maPhone" type="tel" inputmode="numeric" placeholder="10 dígitos"></div>
+    <button class="btn" id="maBtn">Entrar</button>
+    <p class="hint" id="maHint" style="text-align:center;margin-top:14px"></p>
+    <p class="hint" style="text-align:center">¿No tienes ID? Pídelo en el gimnasio.</p>
+    <a class="btn ghost" id="maWa" href="#" target="_blank" rel="noopener" style="text-decoration:none;margin-top:8px">Escríbenos por WhatsApp</a>
+  </div>
+</div>
+
+<!-- ============================ PANEL DE MIEMBRO ============================ -->
+<div class="overlay hidden" id="memberPanel">
+  <div class="sheet-head">
+    <button class="back" id="mpBack"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><div class="h-title">Tu membresía</div><div class="h-sub" id="mpSub"></div></div>
+  </div>
+  <div class="pad" id="mpBody"></div>
 </div>
 
 <!-- ============================ BOOKING ============================ -->
@@ -64,7 +91,11 @@
 function paintHome(){
   $('#homeLogo').innerHTML = logoMark(46,false);
   $('#homePhone').textContent = formatPhone(CONFIG.phone);
-  if(CONFIG.address) $('#homeAddr').textContent='Ver mapa';
+  const cc=CONFIG.countryCode||'52';
+  const num=(CONFIG.whatsapp||CONFIG.phone||'').replace(/\D/g,'');
+  $('#phoneLink').href = num?('tel:+'+cc+num):'#';
+  const ub=$('#cardUbic'); if(CONFIG.address){ ub.href=CONFIG.address; ub.style.display=''; } else { ub.style.display='none'; }
+  $('#cardWa').href = waLink('¡Hola! Quiero información y reservar en EGO GYM.');
   $('#homeHours').textContent='Lun a Vie';
   const s=CONFIG.social||{};
   const ic={
@@ -73,8 +104,12 @@ function paintHome(){
     tiktok:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2 1.6 3.6 3.5 3.9v2.8c-1.3 0-2.5-.4-3.5-1v5.9A5.6 5.6 0 1 1 10.4 9v2.9a2.7 2.7 0 1 0 2.7 2.7V3z"/></svg>',
     whatsapp:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2zm5.6 14c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .3-3.3-.7s-3.7-3.4-3.8-3.6c-.1-.2-.9-1.2-.9-2.3s.6-1.6.8-1.9c.2-.2.4-.3.6-.3h.4c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.4.5c-.1.2-.3.3-.1.6.2.3.7 1.2 1.6 1.9 1.1.9 1.9 1.2 2.2 1.3.2.1.4.1.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.8.9c.2.1.4.2.4.3.1.2.1.7-.1 1.3z"/></svg>'
   };
-  const links=[['instagram',s.instagram],['facebook',s.facebook],['tiktok',s.tiktok],['whatsapp',waLink('¡Hola! Quiero información de EGO GYM.')]];
-  $('#homeSocials').innerHTML = links.map(([k,url])=>`<a href="${url&&url!=='#'?esc(url):'#'}" ${url&&url!=='#'?'target="_blank" rel="noopener"':''} aria-label="${k}">${ic[k]}</a>`).join('');
+  const links=[];
+  if(s.instagram) links.push(['instagram',s.instagram]);
+  if(s.facebook) links.push(['facebook',s.facebook]);
+  if(s.tiktok) links.push(['tiktok',s.tiktok]);
+  links.push(['whatsapp',waLink('¡Hola! Quiero información y reservar en EGO GYM.')]); // WhatsApp siempre
+  $('#homeSocials').innerHTML = links.map(([k,url])=>`<a href="${esc(url)}" target="_blank" rel="noopener" aria-label="${k}">${ic[k]}</a>`).join('');
 }
 
 const BK={ step:'activity', activity:null, dateKey:todayKey(), time:null, bike:null };
@@ -84,7 +119,7 @@ function bookBack(){
   if(BK.step==='activity'){ closeBooking(); return; }
   if(BK.step==='schedule'){ BK.step='activity'; }
   else if(BK.step==='bikemap'){ BK.step='schedule'; }
-  else if(BK.step==='form'){ BK.step = BK.activity==='spinning'?'bikemap':'schedule'; }
+  else if(BK.step==='confirm'){ BK.step = BK.activity==='spinning'?'bikemap':'schedule'; }
   else if(BK.step==='success'){ closeBooking(); return; }
   renderBooking();
 }
@@ -93,7 +128,7 @@ function renderBooking(){
   if(BK.step==='activity'){ title.textContent='Reserva tu clase'; sub.textContent='Elige la actividad'; body.innerHTML=viewActivities(); wireActivities(); }
   else if(BK.step==='schedule'){ const a=CONFIG.activities[BK.activity]; title.textContent=a.label; sub.textContent='Selecciona día y horario'; body.innerHTML=viewSchedule(); wireSchedule(); }
   else if(BK.step==='bikemap'){ title.textContent='Mapa de bicicletas'; sub.textContent=prettyDate(BK.dateKey)+' · '+timeLabel(BK.time); renderBikeMap(); }
-  else if(BK.step==='form'){ title.textContent='Tus datos'; sub.textContent='Último paso'; body.innerHTML=viewForm(); wireForm(); }
+  else if(BK.step==='confirm'){ title.textContent='Confirmar reserva'; sub.textContent='Revisa y confirma'; body.innerHTML=viewConfirm(); wireConfirm(); }
   else if(BK.step==='success'){ title.textContent='¡Listo!'; sub.textContent='Reserva confirmada'; }
 }
 function viewActivities(){
@@ -138,7 +173,7 @@ async function renderSlotList(){
   }));
   box.innerHTML=`<div style="margin-bottom:10px;font-size:13px;color:var(--muted)">Precio por clase: <span class="badge-price">${money(price)}</span></div>`+rows.join('');
   $$('#slotList .pick').forEach(b=>{ if(!b.disabled) b.onclick=()=>{ BK.time=b.dataset.t; BK.bike=null;
-    BK.step = BK.activity==='spinning'?'bikemap':'form'; renderBooking(); }; });
+    BK.step = BK.activity==='spinning'?'bikemap':'confirm'; renderBooking(); }; });
 }
 async function renderBikeMap(){
   const body=$('#bookBody'); const a=CONFIG.activities.spinning; const cols=a.cols||3; const n=a.bikeCount||12;
@@ -157,35 +192,33 @@ async function renderBikeMap(){
     <div class="entrada">ENTRADA</div>
     <div class="sticky-cta"><button class="btn" id="bikeNext" disabled>Continuar</button></div>`;
   $$('#bookBody .bike.free').forEach(b=>b.onclick=()=>{ BK.bike=Number(b.dataset.b); renderBikeMap(); });
-  const nx=$('#bikeNext'); if(BK.bike){ nx.disabled=false; nx.textContent=`Continuar con bici #${BK.bike}`; nx.onclick=()=>{ BK.step='form'; renderBooking(); }; }
+  const nx=$('#bikeNext'); if(BK.bike){ nx.disabled=false; nx.textContent=`Continuar con bici #${BK.bike}`; nx.onclick=()=>{ BK.step='confirm'; renderBooking(); }; }
 }
-function viewForm(){
+function viewConfirm(){
   const a=CONFIG.activities[BK.activity];
   return `
   <div class="summary">
+    <div class="row"><span class="k">Miembro</span><span class="v">${esc(MEMBER?MEMBER.name:'')}</span></div>
     <div class="row"><span class="k">Actividad</span><span class="v">${esc(a.label)}</span></div>
     <div class="row"><span class="k">Fecha</span><span class="v">${prettyDate(BK.dateKey)}</span></div>
     <div class="row"><span class="k">Hora</span><span class="v">${timeLabel(BK.time)}</span></div>
     ${BK.bike?`<div class="row"><span class="k">Bicicleta</span><span class="v">#${BK.bike}</span></div>`:''}
     <div class="row"><span class="k">Precio</span><span class="v">${money(a.price)}</span></div>
   </div>
-  <div class="field"><label>Nombre completo</label><input id="fName" placeholder="Tu nombre" autocomplete="name"></div>
-  <div class="field"><label>Teléfono (WhatsApp)</label><input id="fPhone" type="tel" inputmode="numeric" placeholder="10 dígitos" autocomplete="tel"></div>
+  <p class="hint" style="text-align:center">Al confirmar apartas tu lugar. ¡Te esperamos! 💪</p>
   <div class="sticky-cta"><button class="btn" id="confirmBtn">Confirmar reserva</button></div>`;
 }
-function wireForm(){
+function wireConfirm(){
   $('#confirmBtn').onclick=async ()=>{
-    const name=$('#fName').value.trim(); const phone=$('#fPhone').value.replace(/\D/g,'');
-    if(name.length<2) return toast('Escribe tu nombre',true);
-    if(phone.length<10) return toast('Teléfono de 10 dígitos',true);
+    if(!MEMBER) return startReservation();
     const btn=$('#confirmBtn'); btn.disabled=true; btn.textContent='Reservando…';
     const price=CONFIG.activities[BK.activity].price;
-    const res=await DB.reserve({activity:BK.activity,date:BK.dateKey,time:BK.time,name,phone,bike:BK.bike,price,source:'web'});
+    const res=await DB.reserve({activity:BK.activity,date:BK.dateKey,time:BK.time,name:MEMBER.name,phone:MEMBER.phone,memberCode:MEMBER.code,bike:BK.bike,price,source:'web'});
     if(!res.ok){ btn.disabled=false; btn.textContent='Confirmar reserva';
       if(res.reason==='full'||res.reason==='bike') return renderFull(res.reason);
       if(res.reason==='closed') return toast('Ese horario fue cerrado por el gimnasio',true);
       return toast('No se pudo reservar. Intenta de nuevo.',true); }
-    BK._last={name,phone,activity:BK.activity,date:BK.dateKey,time:BK.time,bike:BK.bike,price};
+    BK._last={name:MEMBER.name,phone:MEMBER.phone,activity:BK.activity,date:BK.dateKey,time:BK.time,bike:BK.bike,price};
     BK.step='success'; renderBooking(); renderSuccess();
   };
 }
@@ -220,13 +253,91 @@ function renderSuccess(){
   $('#againBtn').onclick=()=>{ openBooking(); };
 }
 
+/* ================= MIEMBROS ================= */
+let MEMBER=null; let _afterLogin=null;
+function saveMemberSession(){ try{ if(MEMBER) localStorage.setItem('ego_msession',JSON.stringify({code:MEMBER.code,phone:MEMBER.phone})); else localStorage.removeItem('ego_msession'); }catch(e){} }
+function readMemberSession(){ try{ const v=localStorage.getItem('ego_msession'); return v?JSON.parse(v):null; }catch(e){ return null; } }
+
+function renderMemberChip(){
+  const el=$('#memberChip'); if(!el) return;
+  if(!MEMBER){ el.innerHTML=`<button class="member-chip guest" id="mchip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Soy miembro</button>`;
+    $('#mchip').onclick=()=>openMemberAuth(); return; }
+  const st=membershipStatus(MEMBER);
+  el.innerHTML=`<button class="member-chip" id="mchip"><span class="light ${st.state}"></span>${esc(MEMBER.name.split(' ')[0])}</button>`;
+  $('#mchip').onclick=()=>openMemberPanel();
+}
+
+function openMemberAuth(){ $('#memberAuth').classList.remove('hidden'); $('#maId').value=''; $('#maPhone').value='';
+  $('#maHint').textContent = MODE==='demo'?'Demo: ID DEMO01 · tel 8711112233':'';
+  $('#maWa').href = waLink('¡Hola! Quiero información para ser miembro de EGO GYM.');
+  setTimeout(()=>$('#maId').focus(),120); }
+function closeMemberAuth(){ $('#memberAuth').classList.add('hidden'); }
+async function doMemberLogin(){
+  const code=$('#maId').value.trim().toUpperCase(); const phone=$('#maPhone').value.replace(/\D/g,'');
+  if(code.length<4) return toast('Escribe tu ID',true);
+  if(phone.length<10) return toast('Teléfono de 10 dígitos',true);
+  const btn=$('#maBtn'); btn.disabled=true; btn.textContent='Entrando…';
+  try{ const m=await DB.memberLogin(code,phone); MEMBER=m; saveMemberSession(); renderMemberChip(); closeMemberAuth();
+    toast('¡Bienvenido, '+m.name.split(' ')[0]+'!'); const cb=_afterLogin; _afterLogin=null; if(cb) cb(); }
+  catch(e){ toast(e.message||'No se pudo entrar',true); }
+  finally{ btn.disabled=false; btn.textContent='Entrar'; }
+}
+
+function memberRenewWa(){
+  const st=membershipStatus(MEMBER);
+  const venceTxt = MEMBER.expires ? (st.state==='red'&&st.reason!=='inactive' ? ('venció el '+prettyDate(MEMBER.expires)) : ('vence el '+prettyDate(MEMBER.expires))) : '';
+  return waLink(`¡Hola ${CONFIG.gymName}! 👋 Soy ${MEMBER.name} (ID ${MEMBER.code}). Mi membresía ${venceTxt}. Quiero renovar, ¿me ayudas?`);
+}
+function openMemberPanel(){
+  const st=membershipStatus(MEMBER); const el=$('#mpBody'); $('#mpSub').textContent = MEMBER.name;
+  const labelTxt = st.state==='green' ? 'Membresía activa'
+    : st.state==='yellow' ? 'Tu membresía está por vencer'
+    : (st.reason==='inactive'?'Membresía inactiva':'Tu membresía ha vencido');
+  const sub = st.state==='green' ? (st.daysLeft!=null?`Vence el ${prettyDate(MEMBER.expires)}`:'Activa')
+    : st.state==='yellow' ? `Vence el ${prettyDate(MEMBER.expires)} · quedan ${st.daysLeft} día${st.daysLeft===1?'':'s'}`
+    : (st.reason==='inactive'?'Comunícate con el gimnasio':`Venció el ${prettyDate(MEMBER.expires)}`);
+  el.innerHTML=`
+    <div class="mstat"><span class="light ${st.state}"></span><div class="txt"><div class="a">${labelTxt}</div><div class="b">${sub}</div></div></div>
+    <div class="summary">
+      <div class="row"><span class="k">Nombre</span><span class="v">${esc(MEMBER.name)}</span></div>
+      <div class="row"><span class="k">ID de miembro</span><span class="v" style="letter-spacing:2px">${esc(MEMBER.code)}</span></div>
+      <div class="row"><span class="k">Plan</span><span class="v">${esc(planLabel(MEMBER.plan))}</span></div>
+      <div class="row"><span class="k">Vigencia</span><span class="v">${MEMBER.expires?prettyDate(MEMBER.expires):'—'}</span></div>
+    </div>
+    ${(st.state==='green'||st.state==='yellow')?`<button class="btn" id="mpReservar">Reservar clase</button>`:''}
+    ${st.state==='yellow'?`<a class="btn wa" href="${memberRenewWa()}" target="_blank" rel="noopener" style="text-decoration:none;margin-top:10px">Renovar por WhatsApp</a>`:''}
+    ${st.state==='red'?`<div class="msg-card"><div class="em">⛔</div><h3>${st.reason==='inactive'?'Membresía inactiva':'Tu membresía ha vencido'}</h3>
+        <p>No puedes reservar por ahora. Comunícate con el gimnasio para reactivarla. 💪</p></div>
+      <a class="btn wa" href="${memberRenewWa()}" target="_blank" rel="noopener" style="text-decoration:none">Comunícate por WhatsApp</a>`:''}
+    <button class="btn ghost" id="mpLogout" style="margin-top:10px">Cerrar sesión</button>`;
+  $('#memberPanel').classList.remove('hidden');
+  const rb=$('#mpReservar'); if(rb) rb.onclick=()=>{ closeMemberPanel(); openBooking(); };
+  $('#mpLogout').onclick=()=>{ MEMBER=null; saveMemberSession(); renderMemberChip(); closeMemberPanel(); toast('Sesión cerrada'); };
+}
+function closeMemberPanel(){ $('#memberPanel').classList.add('hidden'); }
+
+function startReservation(){
+  if(!MEMBER){ _afterLogin=startReservation; openMemberAuth(); return; }
+  const st=membershipStatus(MEMBER);
+  if(st.state==='red'){ try{ window.open(memberRenewWa(),'_blank'); }catch(e){} openMemberPanel(); return; }
+  openBooking();
+}
+
 /* arranque */
 (async ()=>{
   try{
     await initCore();
     paintHome();
-    $('#reservarBtn').onclick=openBooking;
+    $('#maLogo').innerHTML = logoMark(60,false);
+    const sess=readMemberSession();
+    if(sess){ try{ MEMBER=await DB.memberLogin(sess.code,sess.phone); }catch(e){ MEMBER=null; saveMemberSession(); } }
+    renderMemberChip();
+    $('#reservarBtn').onclick=startReservation;
     $('#bookBack').onclick=bookBack;
+    $('#maBack').onclick=closeMemberAuth;
+    $('#maBtn').onclick=doMemberLogin;
+    $('#maPhone').addEventListener('keydown',e=>{ if(e.key==='Enter') doMemberLogin(); });
+    $('#mpBack').onclick=closeMemberPanel;
   }catch(e){ console.error(e); document.body.innerHTML='<div class="pad">Error al iniciar: '+esc(e.message)+'</div>'; }
 })();
 </script>

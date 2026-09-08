@@ -23,12 +23,12 @@ const EMAIL_DOMAIN = 'egogym.app';
 /* ----- 2. CONFIG POR DEFECTO (horarios, precios, etc.) ----- */
 const DEFAULT_CONFIG = {
   gymName:'EGO GYM · CLUB',
-  phone:'8712345678',
-  whatsapp:'8712345678',
+  phone:'8712840376',
+  whatsapp:'8712840376',
   countryCode:'52',
-  address:'',
+  address:'https://maps.app.goo.gl/mFwrC19Rn1qPBuYXA',
   hours:'Lun–Vie · Spinning y Box',
-  social:{ instagram:'', facebook:'', tiktok:'', whatsapp:'' },
+  social:{ instagram:'https://www.instagram.com/ego_gym_trc', facebook:'https://www.facebook.com/share/1GJdkLbkC7/', tiktok:'', whatsapp:'' },
   activities:{
     spinning:{
       label:'Spinning', tagline:'Energía en movimiento', price:80,
@@ -81,6 +81,22 @@ function firstAvailableDate(activity){
 }
 function firstFutureTime(activity,dk){ const t=daySlots(activity,dk); return t.find(x=>!slotPassed(dk,x))||t[0]; }
 function lastTime(activity,dk){ const t=daySlots(activity,dk); return t[t.length-1]; }
+
+/* ----- Membresías ----- */
+function addDays(dk,n){ const d=parseKey(dk); d.setDate(d.getDate()+n); return dateKey(d); }
+const PLANS=[{k:'mensual',label:'Mensual',days:30},{k:'quincenal',label:'Quincenal',days:15},{k:'semanal',label:'Semanal',days:7},{k:'visita',label:'Visita',days:1}];
+function planLabel(k){ const p=PLANS.find(x=>x.k===k); return p?p.label:(k||'Personalizado'); }
+function genMemberCode(){ const abc='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=abc[Math.floor(Math.random()*abc.length)]; return s; }
+/* estado: green (activa), yellow (por vencer, <=4 días), red (vencida o inactiva) */
+function membershipStatus(m){
+  if(!m) return {state:'none'};
+  if(m.active===false) return {state:'red', reason:'inactive', daysLeft:null};
+  const daysLeft=Math.round((parseKey(m.expires)-parseKey(todayKey()))/86400000);
+  if(isNaN(daysLeft)) return {state:'green', daysLeft:null};
+  if(daysLeft<0) return {state:'red', reason:'expired', daysLeft};
+  if(daysLeft<=4) return {state:'yellow', daysLeft};
+  return {state:'green', daysLeft};
+}
 
 /* ----- 4. LOGO (logo.png con respaldo SVG si el archivo aún no existe) ----- */
 function egoLogo(size, light){
@@ -164,6 +180,16 @@ const MockDB = {
   async listExpenses(from,to){ let l=Store.read('ego_exp',[]); if(from)l=l.filter(e=>e.date>=from&&e.date<=to); return l.sort((a,b)=>b.date.localeCompare(a.date)); },
   async addExpense(e){ const l=Store.read('ego_exp',[]); l.push({id:'e'+Date.now(),...e}); Store.write('ego_exp',l); },
   async deleteExpense(id){ let l=Store.read('ego_exp',[]); l=l.filter(x=>x.id!==id); Store.write('ego_exp',l); },
+  /* --- Miembros --- */
+  async listMembers(){ return Store.read('ego_members',[]).sort((a,b)=>a.name.localeCompare(b.name)); },
+  async getMember(code){ code=String(code||'').trim().toUpperCase(); return Store.read('ego_members',[]).find(m=>m.code===code)||null; },
+  async createMember(m){ const l=Store.read('ego_members',[]); let code; do{ code=genMemberCode(); }while(l.some(x=>x.code===code));
+    const doc={code,name:m.name,phone:m.phone,plan:m.plan||null,start:m.start,expires:m.expires,active:true,createdAt:Date.now()};
+    l.push(doc); Store.write('ego_members',l); return doc; },
+  async updateMember(code,ch){ const l=Store.read('ego_members',[]); const m=l.find(x=>x.code===code); if(m){Object.assign(m,ch);Store.write('ego_members',l);} return m; },
+  async deleteMember(code){ let l=Store.read('ego_members',[]); l=l.filter(x=>x.code!==code); Store.write('ego_members',l); },
+  async memberLogin(code,phone){ const m=await this.getMember(code); if(!m) throw new Error('ID no encontrado. Revisa tus datos o pídelo en el gym.');
+    if(String(m.phone).replace(/\D/g,'')!==String(phone).replace(/\D/g,'')) throw new Error('El teléfono no coincide con ese ID.'); return m; },
   async login(user,pass){ user=user.trim().toLowerCase();
     let staff=Store.read('ego_staff',[]);
     if(!staff.length && user===BOOTSTRAP_ADMIN.username && pass===BOOTSTRAP_ADMIN.password){
@@ -233,6 +259,16 @@ const FirebaseDB = {
     const s=await q.get(); return s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.date.localeCompare(a.date)); },
   async addExpense(e){ await fdb.collection('expenses').add(e); },
   async deleteExpense(id){ await fdb.collection('expenses').doc(id).delete(); },
+  /* --- Miembros --- */
+  async listMembers(){ const s=await fdb.collection('members').get(); return s.docs.map(d=>({...d.data(),code:d.id})).sort((a,b)=>a.name.localeCompare(b.name)); },
+  async getMember(code){ code=String(code||'').trim().toUpperCase(); const s=await fdb.collection('members').doc(code).get(); return s.exists?{...s.data(),code:s.id}:null; },
+  async createMember(m){ let code; for(let i=0;i<10;i++){ code=genMemberCode(); if(!(await fdb.collection('members').doc(code).get()).exists) break; }
+    const doc={name:m.name,phone:m.phone,plan:m.plan||null,start:m.start,expires:m.expires,active:true,createdAt:Date.now()};
+    await fdb.collection('members').doc(code).set(doc); return {...doc,code}; },
+  async updateMember(code,ch){ await fdb.collection('members').doc(code).update(ch); return this.getMember(code); },
+  async deleteMember(code){ await fdb.collection('members').doc(code).delete(); },
+  async memberLogin(code,phone){ const m=await this.getMember(code); if(!m) throw new Error('ID no encontrado. Revisa tus datos o pídelo en el gym.');
+    if(String(m.phone).replace(/\D/g,'')!==String(phone).replace(/\D/g,'')) throw new Error('El teléfono no coincide con ese ID.'); return m; },
   async login(user,pass){ user=user.trim().toLowerCase(); const email=user+'@'+EMAIL_DOMAIN;
     try{ await fauth.signInWithEmailAndPassword(email,pass); }
     catch(e){
@@ -300,5 +336,11 @@ async function seedDemo(){
   }
   await DB.addExpense({date:yk,concept:'Mantenimiento bicicletas',amount:600});
   await DB.addExpense({date:tk,concept:'Agua y limpieza',amount:250});
+  // Miembros de ejemplo (IDs fijos para probar): activa, por vencer y vencida
+  Store.write('ego_members',[
+    {code:'DEMO01',name:'Ana López',phone:'8711112233',plan:'mensual',start:addDays(tk,-10),expires:addDays(tk,20),active:true,createdAt:Date.now()},
+    {code:'DEMO02',name:'Luis Pérez',phone:'8712223344',plan:'mensual',start:addDays(tk,-27),expires:addDays(tk,3),active:true,createdAt:Date.now()},
+    {code:'DEMO03',name:'Marco Ruiz',phone:'8713334455',plan:'visita',start:addDays(tk,-5),expires:addDays(tk,-2),active:true,createdAt:Date.now()}
+  ]);
   Store.write('ego_seeded',true);
 }

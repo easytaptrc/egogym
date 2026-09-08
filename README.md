@@ -74,14 +74,25 @@ También funciona en Netlify, Vercel, Hostinger o cualquier hosting: sube los 6 
 ## 5) Qué puede hacer el ADMIN (en admin.html)
 
 - **Reservas:** ver las de hoy o de cualquier fecha, filtrar por actividad, marcar **asistió / no asistió**, **cobrar**, **cancelar** (libera el lugar) y crear reservas manuales (walk-ins).
+- **Miembros:** registrar miembros (nombre + teléfono + plan o fecha). Al guardar se **genera un ID de 6 caracteres** (ej. `K7M2Q9`) que puedes **copiar o enviar por WhatsApp**. Renovar (planes que suman días), activar/desactivar y eliminar. El semáforo muestra el estado: verde (activa), amarillo (por vencer) y rojo (vencida).
 - **Horarios:** cambiar precios, número de bicicletas y cupos; agregar o quitar horarios de cada día; y **cerrar o limitar un día específico** ("hoy solo recibo 10").
 - **Personal:** dar de alta usuarios. Rol **Personal** solo ve reservas; **Administrador** puede todo.
 - **Reportes:** ingresos, gastos y **ganancia/pérdida** con gráficas por día y por actividad. Registras gastos (renta, luz, sueldos…).
 - **Ajustes:** nombre, teléfono, WhatsApp, dirección y ligas de redes (aparecen en el index).
 
-## 6) Qué ve el CLIENTE (en index.html)
+## 6) Qué ve el CLIENTE / MIEMBRO (en index.html)
 
-Logo, redes, teléfono y el botón **RESERVAR** → elige **Spinning** o **Box** → día y horario con cupos en vivo → en Spinning **elige su bicicleta en el mapa** → deja **nombre y teléfono** → botón para **confirmar por WhatsApp**. Si un horario está lleno, mensaje amable de **"¡Cupo lleno!"**.
+Logo, redes, teléfono y el botón **RESERVAR**. **Reservar es solo para miembros:** al tocar RESERVAR se pide el **ID + teléfono**. Una vez dentro, arriba a la derecha aparece un **semáforo**:
+
+- 🟢 **Verde:** membresía activa, reserva normal.
+- 🟡 **Amarillo:** faltan 4 días o menos para vencer (aún puede reservar, con aviso para renovar).
+- 🔴 **Rojo:** membresía vencida → **no puede reservar**; le sale el mensaje *"Tu membresía ha vencido, comunícate con el gimnasio"* y se abre **WhatsApp automáticamente** con un mensaje listo para renovar.
+
+Ya dentro: elige **Spinning** o **Box** → día y horario con cupos en vivo → en Spinning **elige su bicicleta en el mapa** → confirma (ya no escribe sus datos, se toman de su membresía) → botón para **confirmar por WhatsApp**. Si un horario está lleno, mensaje amable de **"¡Cupo lleno!"**. La sesión del miembro se recuerda en su teléfono, así no escribe su ID cada vez.
+
+### Cómo entra un miembro
+1. El admin lo registra en la pestaña **Miembros** y le da su **ID**.
+2. El miembro abre la página, toca **RESERVAR** (o "Soy miembro" arriba a la derecha) y escribe su **ID + teléfono** (el mismo con el que lo registraron).
 
 ---
 
@@ -93,6 +104,7 @@ Logo, redes, teléfono y el botón **RESERVAR** → elige **Spinning** o **Box**
 
 ## 8) Notas
 
+- **⚠️ Vuelve a publicar las reglas:** esta versión agrega la colección de **miembros**, así que copia otra vez `firestore.rules` en Firebase → Firestore → Reglas → Publicar. Si no, el acceso de miembros marcará "permisos insuficientes".
 - **Contraseña del admin:** por ahora se cambia en Firebase Console → Authentication (usuario `edson@egogym.app`). Si quieres un botón dentro del panel, dímelo y lo agrego.
 - **Versión de Firebase:** `10.14.1` (líneas `<script src="...firebasejs/10.14.1/...">` en `index.html` y `admin.html`).
 - **Seguridad:** las reglas incluidas son adecuadas para un gimnasio pequeño. Para blindaje extra (Cloud Functions), te ayudo cuando quieras.
